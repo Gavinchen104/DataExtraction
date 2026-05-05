@@ -1,0 +1,76 @@
+{
+  "version": "0.1.0",
+  "doc_types": {
+    "invoice": {
+      "description": "Commercial invoice or receipt",
+      "fields": {
+        "invoice_number": "string",
+        "invoice_date": "date",
+        "due_date": "date",
+        "seller_name": "string",
+        "seller_address": "string",
+        "seller_tax_id": "string",
+        "client_name": "string",
+        "client_address": "string",
+        "client_tax_id": "string",
+        "iban": "string",
+        "subtotal": "currency",
+        "tax": "currency",
+        "total": "currency",
+        "items": "list_of_line_items"
+      },
+      "line_item_fields": {
+        "description": "string",
+        "quantity": "number",
+        "unit_price": "currency",
+        "total_price": "currency"
+      }
+    },
+    "contract": {
+      "description": "Commercial legal contract. Field taxonomy mirrors CUAD's 41 clause categories.",
+      "fields": {
+        "document_name": "string",
+        "parties": "string",
+        "agreement_date": "date",
+        "effective_date": "date",
+        "expiration_date": "date",
+        "renewal_term": "string",
+        "notice_period_to_terminate_renewal": "string",
+        "governing_law": "string",
+        "most_favored_nation": "string",
+        "non_compete": "string",
+        "exclusivity": "string",
+        "no_solicit_of_customers": "string",
+        "competitive_restriction_exception": "string",
+        "no_solicit_of_employees": "string",
+        "non_disparagement": "string",
+        "termination_for_convenience": "string",
+        "rofr_rofo_rofn": "string",
+        "change_of_control": "string",
+        "anti_assignment": "string",
+        "revenue_profit_sharing": "string",
+        "price_restrictions": "string",
+        "minimum_commitment": "string",
+        "volume_restriction": "string",
+        "ip_ownership_assignment": "string",
+        "joint_ip_ownership": "string",
+        "license_grant": "string",
+        "non_transferable_license": "string",
+        "affiliate_license_licensor": "string",
+        "affiliate_license_licensee": "string",
+        "unlimited_all_you_can_eat_license": "string",
+        "irrevocable_or_perpetual_license": "string",
+        "source_code_escrow": "string",
+        "post_termination_services": "string",
+        "audit_rights": "string",
+        "uncapped_liability": "string",
+        "cap_on_liability": "string",
+        "liquidated_damages": "string",
+        "warranty_duration": "string",
+        "insurance": "string",
+        "covenant_not_to_sue": "string",
+        "third_party_beneficiary": "string"
+      }
+    }
+  }
+}

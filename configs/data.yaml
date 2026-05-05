@@ -1,0 +1,23 @@
+seed: 42
+
+splits:
+  val_fraction: 0.05
+  test_fraction: 0.10
+
+sources:
+  - name: cuad
+    hf_id: theatticusproject/cuad-qa
+    split: train
+    loader: cuad
+    max_context_chars: 16000
+
+  - name: mychen76_invoices
+    hf_id: mychen76/invoices-and-receipts_ocr_v1
+    split: train
+    loader: mychen76
+
+output:
+  dir: data/processed
+  train_file: train.jsonl
+  val_file: val.jsonl
+  test_file: test.jsonl

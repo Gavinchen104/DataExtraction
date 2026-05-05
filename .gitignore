@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+
+# Data — never commit raw or processed datasets
+data/raw/
+data/processed/
+!data/schema.json
+
+# Training artifacts
+runs/
+wandb/
+*.ckpt
+*.safetensors
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# HF cache if redirected into repo
+.cache/
