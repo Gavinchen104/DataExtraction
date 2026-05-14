@@ -6,6 +6,7 @@ and do not assign splits — that is the splitter's job.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from collections.abc import Iterable, Iterator
@@ -74,19 +75,36 @@ _INVOICE_FIELDS: dict[str, str] = {
 }
 
 
-def _coerce_json(value: Any) -> Any:
-    if isinstance(value, str):
-        try:
-            return json.loads(value)
-        except json.JSONDecodeError:
-            return None
-    return value
+def _parse_loose(value: Any) -> Any:
+    """Parse JSON or Python-repr strings. mychen76 stores dicts as `repr()`, not JSON."""
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        pass
+    try:
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        return None
+
+
+def _unwrap_mychen76_envelope(parsed_data: Any) -> dict[str, Any] | None:
+    """mychen76 wraps the invoice dict as `{"xml": ..., "json": "<repr>", "kie": ...}`."""
+    outer = _parse_loose(parsed_data)
+    if not isinstance(outer, dict):
+        return None
+    inner = outer.get("json") if "json" in outer else outer
+    inner_parsed = _parse_loose(inner) if isinstance(inner, str) else inner
+    return inner_parsed if isinstance(inner_parsed, dict) else None
 
 
 def _extract_ocr_text(raw_data: Any) -> str:
-    parsed = _coerce_json(raw_data)
-    if isinstance(parsed, dict) and "ocr_words" in parsed:
-        words = parsed["ocr_words"]
+    envelope = _parse_loose(raw_data)
+    if isinstance(envelope, dict) and "ocr_words" in envelope:
+        words = envelope["ocr_words"]
+        if isinstance(words, str):
+            words = _parse_loose(words)
         if isinstance(words, list):
             return "\n".join(str(w) for w in words)
     if isinstance(raw_data, str):
@@ -94,12 +112,28 @@ def _extract_ocr_text(raw_data: Any) -> str:
     return ""
 
 
+def _normalize_line_item(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "description": item.get("item_desc") or item.get("description"),
+        "quantity": item.get("item_qty") or item.get("quantity"),
+        "unit_price": item.get("item_net_price") or item.get("unit_price"),
+        "total_price": item.get("item_gross_worth")
+        or item.get("item_net_worth")
+        or item.get("total_price"),
+    }
+
+
+def _as_dict(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
 def _normalize_invoice_output(parsed: dict[str, Any]) -> dict[str, Any]:
-    """Flatten the mychen76 nested JSON into the canonical invoice schema."""
-    header = parsed.get("header") or {}
-    subtotal_block = parsed.get("subtotal") or {}
-    payment = parsed.get("payment_instructions") or {}
-    items = parsed.get("items") or []
+    """Flatten the mychen76 nested dict into the canonical invoice schema."""
+    header = _as_dict(parsed.get("header"))
+    summary = _as_dict(parsed.get("summary")) or _as_dict(parsed.get("subtotal"))
+    payment = _as_dict(parsed.get("payment_instructions"))
+    raw_items = parsed.get("items")
+    items = [i for i in raw_items if isinstance(i, dict)] if isinstance(raw_items, list) else []
 
     out: dict[str, Any] = {
         "invoice_number": header.get("invoice_no") or header.get("invoice_number"),
@@ -112,10 +146,10 @@ def _normalize_invoice_output(parsed: dict[str, Any]) -> dict[str, Any]:
         "client_address": None,
         "client_tax_id": header.get("client_tax_id"),
         "iban": header.get("iban") or payment.get("account_number"),
-        "subtotal": subtotal_block.get("subtotal") or subtotal_block.get("gross_worth"),
-        "tax": subtotal_block.get("tax"),
-        "total": subtotal_block.get("total"),
-        "items": items if isinstance(items, list) else [],
+        "subtotal": summary.get("total_net_worth") or summary.get("subtotal"),
+        "tax": summary.get("total_vat") or summary.get("tax"),
+        "total": summary.get("total_gross_worth") or summary.get("total"),
+        "items": [_normalize_line_item(i) for i in items],
     }
     return out
 
@@ -127,7 +161,7 @@ def load_mychen76(rows: Iterable[dict[str, Any]]) -> Iterator[ExtractionRecord]:
         if not input_text:
             continue
 
-        parsed = _coerce_json(row.get("parsed_data"))
+        parsed = _unwrap_mychen76_envelope(row.get("parsed_data"))
         if not isinstance(parsed, dict):
             continue
 

@@ -26,7 +26,11 @@ def _load_source(spec: dict) -> list[ExtractionRecord]:
     if loader_name not in LOADERS:
         raise ValueError(f"Unknown loader {loader_name!r}. Available: {list(LOADERS)}")
 
-    ds = load_dataset(spec["hf_id"], split=spec.get("split", "train"))
+    ds = load_dataset(
+        spec["hf_id"],
+        split=spec.get("split", "train"),
+        trust_remote_code=spec.get("trust_remote_code", False),
+    )
     max_chars = spec.get("max_context_chars")
 
     records: list[ExtractionRecord] = []

@@ -4,13 +4,13 @@ Living roadmap for the Llama-3-8B + LoRA structured extraction project. Update a
 
 ## Status snapshot
 
-**Last updated:** 2026-05-04
+**Last updated:** 2026-05-13
 
 | Phase | Status |
 |---|---|
 | 0. Framing & scaffolding | ✅ Done |
-| 1. Data materialization | 🟡 Code written, not yet run |
-| 2. Eval harness | ⬜ Not started |
+| 1. Data materialization | ✅ Done (24,493 records on disk) |
+| 2. Eval harness | 🟡 In progress |
 | 3. Baselines | ⬜ Not started |
 | 4. Fine-tune (single run) | ⬜ Not started |
 | 5. Ablations | ⬜ Not started |
@@ -51,11 +51,17 @@ Living roadmap for the Llama-3-8B + LoRA structured extraction project. Update a
 5. Confirm split sizes match expectation (~13k CUAD + ~2.2k invoices ≈ 15k total).
 
 **Acceptance:**
-- [ ] `data/processed/train.jsonl` exists, non-empty.
-- [ ] `data/processed/val.jsonl` ~5% of total.
-- [ ] `data/processed/test.jsonl` ~10% of total — **frozen from this point forward**.
-- [ ] `manifest.json` records seed, fractions, source dataset ids.
-- [ ] At least one sample of each (doc_type, source_dataset) eyeballed for correctness.
+- [x] `data/processed/train.jsonl` exists, non-empty (20,568 records).
+- [x] `data/processed/val.jsonl` ~5% of total (1,351 / 24,493 = 5.5%).
+- [x] `data/processed/test.jsonl` ~10% of total (2,574 / 24,493 = 10.5%) — **frozen from this point forward**.
+- [x] `manifest.json` records seed, fractions, source dataset ids.
+- [x] One sample of each (doc_type, source_dataset) eyeballed for correctness.
+
+**First-run findings (fixed):**
+- `datasets` 4.x dropped script-based loaders → pinned to `datasets<3.0` and added `trust_remote_code: true` for CUAD.
+- mychen76 `parsed_data` is `{xml, json: '<repr>', kie}` envelope with Python-repr string inside → added `ast.literal_eval` fallback in `_parse_loose`.
+- mychen76 line-item keys are `item_desc`/`item_qty`/`item_net_price`/`item_gross_worth` (not `description`/etc) → mapped in `_normalize_line_item`.
+- Some mychen76 `summary`/`header` fields are strings, not dicts → added `_as_dict` defensive coercion.
 
 **Risks:**
 - CUAD or mychen76 column shapes may differ from assumptions — loader fixes likely on first run.

@@ -9,6 +9,7 @@ sources:
     hf_id: theatticusproject/cuad-qa
     split: train
     loader: cuad
+    trust_remote_code: true
     max_context_chars: 16000
 
   - name: mychen76_invoices

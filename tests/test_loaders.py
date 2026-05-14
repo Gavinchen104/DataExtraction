@@ -44,7 +44,8 @@ def test_cuad_skips_rows_without_category():
 
 
 def test_mychen76_flattens_nested_json():
-    parsed = {
+    """mychen76 wraps invoice data as {xml, json: '<repr-string>', kie}."""
+    inner_invoice = {
         "header": {
             "invoice_no": "40378170",
             "invoice_date": "10/15/2012",
@@ -52,23 +53,35 @@ def test_mychen76_flattens_nested_json():
             "client": "Jackson Inc",
             "iban": "GB77WRBQ",
         },
-        "items": [{"description": "Widget", "quantity": "2.00", "total_price": "10.00"}],
-        "subtotal": {"total": "10.00", "tax": "1.00"},
+        "items": [
+            {
+                "item_desc": "Widget",
+                "item_qty": "2,00",
+                "item_net_price": "5,00",
+                "item_gross_worth": "10,00",
+            }
+        ],
+        "summary": {
+            "total_net_worth": "$10,00",
+            "total_vat": "$1,00",
+            "total_gross_worth": "$11,00",
+        },
     }
-    raw = {"ocr_words": ["Invoice no: 40378170", "Date: 10/15/2012"]}
-    rows = [
-        {"id": "abc", "parsed_data": json.dumps(parsed), "raw_data": json.dumps(raw)}
-    ]
+    envelope = {"xml": "", "json": repr(inner_invoice), "kie": ""}
+    raw = {"ocr_words": repr(["Invoice no: 40378170", "Date: 10/15/2012"])}
+    rows = [{"id": "abc", "parsed_data": json.dumps(envelope), "raw_data": json.dumps(raw)}]
+
     records = list(load_mychen76(rows))
     assert len(records) == 1
     r = records[0]
     assert r.doc_type == "invoice"
     assert r.output_json["invoice_number"] == "40378170"
-    assert r.output_json["total"] == "10.00"
+    assert r.output_json["total"] == "$11,00"
     assert r.output_json["items"][0]["description"] == "Widget"
+    assert r.output_json["items"][0]["total_price"] == "10,00"
     assert "Invoice no: 40378170" in r.input_text
 
 
-def test_mychen76_skips_rows_with_bad_parsed_data():
-    rows = [{"id": "x", "parsed_data": "not json", "raw_data": "some text"}]
+def test_mychen76_skips_rows_with_unparseable_envelope():
+    rows = [{"id": "x", "parsed_data": "{{{not parseable", "raw_data": "some text"}]
     assert list(load_mychen76(rows)) == []
